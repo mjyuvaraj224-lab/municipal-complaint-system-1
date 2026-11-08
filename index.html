@@ -57,21 +57,14 @@
       font-weight: bold;
       font-size: 14px;
       margin-top: 14px;
-      transition: background 0.2s ease;
     }
     .btn-location {
       background-color: #0284c7;
       color: white;
     }
-    .btn-location:hover {
-      background-color: #0369a1;
-    }
     .btn-submit {
       background-color: #25D366;
       color: white;
-    }
-    .btn-submit:hover {
-      background-color: #1ebc59;
     }
     .result-box {
       margin-top: 12px;
@@ -111,7 +104,7 @@
     <label for="description">Complaint Description</label>
     <textarea id="description" placeholder="Describe the issue..."></textarea>
 
-    <button type="button" class="btn-location" onclick="getLocation()">📍 Get Live Location</button>
+    <button type="button" class="btn-location" onclick="handleLocationClick()">📍 Get Live Location</button>
     <div id="locationText" class="result-box">Location: Not captured yet</div>
 
     <button type="button" class="btn-submit" onclick="sendToWhatsApp()">📤 Submit & Send via WhatsApp</button>
@@ -119,114 +112,96 @@
   </div>
 
   <script>
-    let locationLink = "Not captured";
+    var globalLocationLink = "Not captured";
 
-    function getLocation() {
-      const locDisplay = document.getElementById("locationText");
+    function handleLocationClick() {
+      var box = document.getElementById("locationText");
+      box.innerText = "⏳ Requesting location access...";
 
       if (!navigator.geolocation) {
-        locDisplay.style.borderLeftColor = "#dc2626";
-        locDisplay.innerText = "❌ Geolocation is not supported by your browser.";
+        fetchNetworkLocation();
         return;
       }
 
-      locDisplay.style.borderLeftColor = "#0284c7";
-      locDisplay.innerText = "⏳ Requesting location... Tap 'Allow' if prompted.";
-
-      // First attempt: Fast network location
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          applyCoordinates(pos.coords.latitude, pos.coords.longitude);
+        function (pos) {
+          var lat = pos.coords.latitude.toFixed(5);
+          var lng = pos.coords.longitude.toFixed(5);
+          globalLocationLink = "https://maps.google.com/?q=" + lat + "," + lng;
+          box.style.borderLeftColor = "#16a34a";
+          box.innerHTML = "✅ <strong>Live GPS Captured!</strong><br>Coordinates: " + lat + ", " + lng + "<br><a href='" + globalLocationLink + "' target='_blank' style='color:#0284c7;'>View on Google Maps</a>";
         },
-        (err) => {
-          // Fallback attempt: Try high accuracy GPS if initial attempt times out
-          locDisplay.innerText = "⏳ Polling device GPS...";
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              applyCoordinates(pos.coords.latitude, pos.coords.longitude);
-            },
-            (finalErr) => {
-              locDisplay.style.borderLeftColor = "#dc2626";
-              if (finalErr.code === 1) {
-                locDisplay.innerText = "❌ Permission denied. Tap the lock icon in the address bar and set Location to 'Allow'.";
-              } else if (finalErr.code === 2) {
-                locDisplay.innerText = "❌ Location unavailable. Ensure phone GPS is switched ON.";
-              } else {
-                locDisplay.innerText = "❌ Location timed out. Please tap 'Get Live Location' again.";
-              }
-            },
-            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-          );
+        function (err) {
+          box.innerText = "⏳ Device GPS pending. Fetching network location...";
+          fetchNetworkLocation();
         },
         { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
       );
     }
 
-    function applyCoordinates(lat, lng) {
-      const locDisplay = document.getElementById("locationText");
-      const cleanLat = lat.toFixed(5);
-      const cleanLng = lng.toFixed(5);
-      locationLink = https://maps.google.com/?q=${cleanLat},${cleanLng};
-      locDisplay.style.borderLeftColor = "#16a34a";
-      locDisplay.innerHTML = ✅ <strong>Location Captured!</strong><br>Coordinates: ${cleanLat}, ${cleanLng}<br><a href="${locationLink}" target="_blank" style="color: #0284c7; text-decoration: none;">View on Google Maps</a>;
+    function fetchNetworkLocation() {
+      var box = document.getElementById("locationText");
+      fetch("https://ipapi.co/json/")
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data && data.latitude && data.longitude) {
+            var lat = Number(data.latitude).toFixed(5);
+            var lng = Number(data.longitude).toFixed(5);
+            globalLocationLink = "https://maps.google.com/?q=" + lat + "," + lng;
+            box.style.borderLeftColor = "#16a34a";
+            box.innerHTML = "✅ <strong>Location Captured!</strong><br>Area: " + (data.city || "Local Area") + " (" + lat + ", " + lng + ")<br><a href='" + globalLocationLink + "' target='_blank' style='color:#0284c7;'>View on Google Maps</a>";
+          } else {
+            box.style.borderLeftColor = "#dc2626";
+            box.innerText = "❌ Location unavailable. Please specify your area manually.";
+          }
+        })
+        .catch(function () {
+          box.style.borderLeftColor = "#dc2626";
+          box.innerText = "❌ Location unavailable. Please specify your area manually.";
+        });
     }
 
     function sendToWhatsApp() {
-      const name = document.getElementById("name").value.trim();
-      const phone = document.getElementById("phone").value.trim();
-      const category = document.getElementById("category").value;
-      const address = document.getElementById("address").value.trim() || "Not specified";
-      const description = document.getElementById("description").value.trim() || "No details provided";
+      var name = document.getElementById("name").value.trim();
+      var phone = document.getElementById("phone").value.trim();
+      var category = document.getElementById("category").value;
+      var address = document.getElementById("address").value.trim() || "Not specified";
+      var description = document.getElementById("description").value.trim() || "No details provided";
 
       if (!name) {
         alert("Please enter your name.");
-        document.getElementById("name").focus();
         return;
       }
       if (!phone) {
-        alert("Please enter your contact phone number.");
-        document.getElementById("phone").focus();
+        alert("Please enter your phone number.");
         return;
       }
 
-      const complaintId = "SW-" + Math.floor(100000 + Math.random() * 900000);
+      var complaintId = "SW-" + Math.floor(100000 + Math.random() * 900000);
+      
+      // Target phone number set with India country code
+      var targetWhatsAppNumber = "918088623338";
 
-      // TARGET PHONE NUMBER: Country code + 10 digits without + or dashes
-      // Replace with your WhatsApp number (e.g., 919876543210)
-      const targetWhatsAppNumber = "91XXXXXXXXXX";
+      var message = 
+        "NEW MUNICIPAL COMPLAINT\n" +
+        "--------------------------------\n" +
+        "Complaint ID: " + complaintId + "\n" +
+        "Citizen Name: " + name + "\n" +
+        "Phone Number: " + phone + "\n" +
+        "Category: " + category + "\n" +
+        "Address / Ward: " + address + "\n" +
+        "Details: " + description + "\n" +
+        "Location Link: " + globalLocationLink + "\n" +
+        "--------------------------------\n" +
+        "SmartWard Complaint Portal";
 
-      const message = 
-`NEW MUNICIPAL COMPLAINT
---------------------------------
-Complaint ID: ${complaintId}
-Citizen Name: ${name}
-Phone Number: ${phone}
-Category: ${category}
-Address / Ward: ${address}
-Details: ${description}
-Google Maps GPS: ${locationLink}
---------------------------------
-Generated via SmartWard System`;
-
-      const encoded = encodeURIComponent(message);
-      const url = https://wa.me/${targetWhatsAppNumber}?text=${encoded};
-
-      // Open WhatsApp
+      var url = "https://wa.me/" + targetWhatsAppNumber + "?text=" + encodeURIComponent(message);
       window.open(url, "_blank");
 
-      const resultBox = document.getElementById("complaintResult");
+      var resultBox = document.getElementById("complaintResult");
       resultBox.style.display = "block";
-      resultBox.innerHTML = ✅ <strong>Complaint Generated!</strong><br>ID: <strong>${complaintId}</strong><br>Redirecting to WhatsApp to send report...;
+      resultBox.innerHTML = "✅ <strong>Complaint Registered!</strong><br>ID: <strong>" + complaintId + "</strong><br>Opening WhatsApp to send details...";
     }
   </script>
 </body>
 </html>
-    
-    
-
-
-     
- 
-   
-
-  
