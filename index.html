@@ -10,27 +10,31 @@
       background: #f4f6f9;
       display: flex;
       justify-content: center;
-      padding: 20px;
+      padding: 15px;
+      margin: 0;
     }
     .card {
       background: #ffffff;
-      padding: 25px;
+      padding: 22px;
       border-radius: 10px;
       max-width: 450px;
       width: 100%;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-sizing: border-box;
     }
     h2 {
       margin-top: 0;
-      color: #333;
+      color: #2c3e50;
       text-align: center;
+      font-size: 22px;
     }
     label {
       font-weight: bold;
       display: block;
       margin-top: 12px;
       margin-bottom: 5px;
-      font-size: 14px;
+      font-size: 13px;
+      color: #333;
     }
     input, textarea, select {
       width: 100%;
@@ -42,7 +46,7 @@
     }
     textarea {
       resize: vertical;
-      height: 70px;
+      height: 65px;
     }
     button {
       width: 100%;
@@ -52,181 +56,177 @@
       cursor: pointer;
       font-weight: bold;
       font-size: 14px;
-      margin-top: 15px;
+      margin-top: 14px;
+      transition: background 0.2s ease;
     }
     .btn-location {
-      background-color: #28a745;
+      background-color: #0284c7;
       color: white;
+    }
+    .btn-location:hover {
+      background-color: #0369a1;
     }
     .btn-submit {
       background-color: #25D366;
       color: white;
     }
+    .btn-submit:hover {
+      background-color: #1ebc59;
+    }
     .result-box {
-      margin-top: 15px;
+      margin-top: 12px;
       padding: 10px;
       background: #eef2f7;
       border-radius: 6px;
       font-size: 13px;
       word-break: break-all;
+      border-left: 4px solid #0284c7;
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>Municipal Complaint Form</h2>
+    <h2>SmartWard Complaint Portal</h2>
 
-    <label for="name">Name</label>
-    <input type="text" id="name" placeholder="Enter full name" required />
+    <label for="name">Full Name *</label>
+    <input type="text" id="name" placeholder="Enter your full name" required />
 
-    <label for="address">Address / Ward</label>
-    <textarea id="address" placeholder="Enter street, ward, or landmark"></textarea>
-
-    <label for="phone">Phone Number</label>
-    <input type="tel" id="phone" placeholder="Enter contact number" />
+    <label for="phone">Phone Number *</label>
+    <input type="tel" id="phone" placeholder="Enter 10-digit mobile number" required />
 
     <label for="category">Issue Category</label>
     <select id="category">
-      <option value="Pothole">Pothole</option>
-      <option value="Street Light">Broken Street Light</option>
-      <option value="Garbage">Garbage / Waste Pile</option>
-      <option value="Water Leakage">Water Pipe Leakage</option>
-      <option value="Drainage">Drainage Overflow</option>
+      <option value="Pothole / Road Damage">Pothole / Road Damage</option>
+      <option value="Street Light Fault">Street Light Fault</option>
+      <option value="Garbage / Waste Overflow">Garbage / Waste Overflow</option>
+      <option value="Water Pipe Leakage">Water Pipe Leakage</option>
+      <option value="Drainage Overflow">Drainage Overflow</option>
+      <option value="Other Civic Issue">Other Civic Issue</option>
     </select>
 
-    <label for="description">Complaint Description</label>
-    <textarea id="description" placeholder="Describe the problem..."></textarea>
+    <label for="address">Address / Ward / Area Landmark</label>
+    <textarea id="address" placeholder="e.g., Near Bus Stand, Ward 12..."></textarea>
 
-    <button type="button" class="btn-location" onclick="getLocation()">Get Live Location</button>
+    <label for="description">Complaint Description</label>
+    <textarea id="description" placeholder="Describe the issue..."></textarea>
+
+    <button type="button" class="btn-location" onclick="getLocation()">📍 Get Live Location</button>
     <div id="locationText" class="result-box">Location: Not captured yet</div>
 
-    <button type="button" class="btn-submit" onclick="sendToWhatsApp()">Submit & Send via WhatsApp</button>
-    <div id="complaintResult" class="result-box" style="display:none;"></div>
+    <button type="button" class="btn-submit" onclick="sendToWhatsApp()">📤 Submit & Send via WhatsApp</button>
+    <div id="complaintResult" class="result-box" style="display:none; border-left-color: #25D366;"></div>
   </div>
 
   <script>
-    let locationCoordinates = "";
+    let locationLink = "Not captured";
 
-     function getLocation() {
+    function getLocation() {
       const locDisplay = document.getElementById("locationText");
-      
+
       if (!navigator.geolocation) {
-        locDisplay.innerText = "Location is not supported on this device/browser.";
+        locDisplay.style.borderLeftColor = "#dc2626";
+        locDisplay.innerText = "❌ Geolocation is not supported by your browser.";
         return;
       }
 
-      locDisplay.innerText = "Accessing GPS... please tap 'Allow' if prompted.";
+      locDisplay.style.borderLeftColor = "#0284c7";
+      locDisplay.innerText = "⏳ Requesting location... Tap 'Allow' if prompted.";
 
-      const geoOptions = {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 30000
-      };
-
+      // First attempt: Fast network location
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const lat = pos.coords.latitude.toFixed(5);
-          const lng = pos.coords.longitude.toFixed(5);
-          locationCoordinates = https://maps.google.com/?q=${lat},${lng};
-          locDisplay.style.color = "#155724";
-          locDisplay.innerText = Location Captured: ${lat}, ${lng};
+          applyCoordinates(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => {
-          let errorMsg = "Unable to fetch location.";
-          if (err.code === 1) {
-            errorMsg = "Permission denied. Please tap the lock icon in the address bar and allow location.";
-          } else if (err.code === 2) {
-            errorMsg = "Location unavailable. Please make sure phone GPS is turned on.";
-          } else if (err.code === 3) {
-            errorMsg = "Request timed out. Please try tapping the button again.";
-          }
-          locDisplay.style.color = "#721c24";
-          locDisplay.innerText = errorMsg;
+          // Fallback attempt: Try high accuracy GPS if initial attempt times out
+          locDisplay.innerText = "⏳ Polling device GPS...";
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              applyCoordinates(pos.coords.latitude, pos.coords.longitude);
+            },
+            (finalErr) => {
+              locDisplay.style.borderLeftColor = "#dc2626";
+              if (finalErr.code === 1) {
+                locDisplay.innerText = "❌ Permission denied. Tap the lock icon in the address bar and set Location to 'Allow'.";
+              } else if (finalErr.code === 2) {
+                locDisplay.innerText = "❌ Location unavailable. Ensure phone GPS is switched ON.";
+              } else {
+                locDisplay.innerText = "❌ Location timed out. Please tap 'Get Live Location' again.";
+              }
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+          );
         },
-        geoOptions
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
       );
     }
 
-    function sendToWhatsApp() {
-      const name = document.getElementById("name").value.trim();
-      const address = document.getElementById("address").value.trim() || "Not provided";
-      const phone = document.getElementById("phone").value.trim() || "Not provided";
-      const category = document.getElementById("category").value;
-      const description = document.getElementById("description").value.trim() || "No description";
-      const locationLink = locationCoordinates || "Not captured";
-
-      if (!name) {
-        alert("Please enter your name.");
-        return;
-      }
-
-      const complaintId = "SW-" + Math.floor(100000 + Math.random() * 900000);
-
-      // Replace 91XXXXXXXXXX with your actual mobile number
-      const targetNumber = "91XXXXXXXXXX";
-
-      const messageText = 
-`NEW MUNICIPAL COMPLAINT
----------------------------
-Complaint ID: ${complaintId}
-Citizen Name: ${name}
-Phone: ${phone}
-Category: ${category}
-Address: ${address}
-Details: ${description}
-GPS Location: ${locationLink}`;
-
-      const encodedMessage = encodeURIComponent(messageText);
-      const whatsappUrl = https://wa.me/${targetNumber}?text=${encodedMessage};
-
-      window.open(whatsappUrl, "_blank");
-
-      const resultBox = document.getElementById("complaintResult");
-      resultBox.style.display = "block";
-      resultBox.innerHTML = <strong>Complaint Prepared!</strong><br>ID: <strong>${complaintId}</strong><br>Opening WhatsApp to send details...;
+    function applyCoordinates(lat, lng) {
+      const locDisplay = document.getElementById("locationText");
+      const cleanLat = lat.toFixed(5);
+      const cleanLng = lng.toFixed(5);
+      locationLink = https://maps.google.com/?q=${cleanLat},${cleanLng};
+      locDisplay.style.borderLeftColor = "#16a34a";
+      locDisplay.innerHTML = ✅ <strong>Location Captured!</strong><br>Coordinates: ${cleanLat}, ${cleanLng}<br><a href="${locationLink}" target="_blank" style="color: #0284c7; text-decoration: none;">View on Google Maps</a>;
     }
-  </script>
 
     function sendToWhatsApp() {
       const name = document.getElementById("name").value.trim();
-      const address = document.getElementById("address").value.trim() || "Not provided";
-      const phone = document.getElementById("phone").value.trim() || "Not provided";
+      const phone = document.getElementById("phone").value.trim();
       const category = document.getElementById("category").value;
-      const description = document.getElementById("description").value.trim() || "No description";
-      const locationLink = locationCoordinates || "Not captured";
+      const address = document.getElementById("address").value.trim() || "Not specified";
+      const description = document.getElementById("description").value.trim() || "No details provided";
 
       if (!name) {
         alert("Please enter your name.");
+        document.getElementById("name").focus();
+        return;
+      }
+      if (!phone) {
+        alert("Please enter your contact phone number.");
+        document.getElementById("phone").focus();
         return;
       }
 
       const complaintId = "SW-" + Math.floor(100000 + Math.random() * 900000);
 
-      // TARGET PHONE NUMBER (Country code + 10 digits, no spaces or +)
-      const targetNumber = "91XXXXXXXXXX";
+      // TARGET PHONE NUMBER: Country code + 10 digits without + or dashes
+      // Replace with your WhatsApp number (e.g., 919876543210)
+      const targetWhatsAppNumber = "91XXXXXXXXXX";
 
-      const messageText = 
+      const message = 
 `NEW MUNICIPAL COMPLAINT
----------------------------
+--------------------------------
 Complaint ID: ${complaintId}
 Citizen Name: ${name}
-Phone: ${phone}
+Phone Number: ${phone}
 Category: ${category}
-Address: ${address}
+Address / Ward: ${address}
 Details: ${description}
-GPS Location: ${locationLink}`;
+Google Maps GPS: ${locationLink}
+--------------------------------
+Generated via SmartWard System`;
 
-      const encodedMessage = encodeURIComponent(messageText);
-      const whatsappUrl = https://wa.me/${targetNumber}?text=${encodedMessage};
+      const encoded = encodeURIComponent(message);
+      const url = https://wa.me/${targetWhatsAppNumber}?text=${encoded};
 
       // Open WhatsApp
-      window.open(whatsappUrl, "_blank");
+      window.open(url, "_blank");
 
       const resultBox = document.getElementById("complaintResult");
       resultBox.style.display = "block";
-      resultBox.innerHTML = <strong>Complaint Prepared!</strong><br>ID: <strong>${complaintId}</strong><br>Opening WhatsApp to send details...;
+      resultBox.innerHTML = ✅ <strong>Complaint Generated!</strong><br>ID: <strong>${complaintId}</strong><br>Redirecting to WhatsApp to send report...;
     }
   </script>
 </body>
 </html>
+    
+    
+
+
+     
+ 
+   
+
+  
